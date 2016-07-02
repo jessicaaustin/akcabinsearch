@@ -1,6 +1,25 @@
 
+Structure
+===
+
+tasks/
+---
+
+Python tasks to scrape cabin data.
+
+api/
+---
+
+REST API using Flask.
+
+web/
+---
+
+Frontend written with Angular 2.
+
 Setup
 ===
+
 
 Install Anaconda: https://www.continuum.io/downloads
 
