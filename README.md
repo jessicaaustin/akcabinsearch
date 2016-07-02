@@ -2,33 +2,20 @@
 Structure
 ===
 
-tasks/
----
-
-Python tasks to scrape cabin data.
-
 api/
 ---
 
 REST API using Flask.
 
+api/tasks/
+---
+
+Python tasks to scrape cabin data.
+
 web/
 ---
 
 Frontend written with Angular 2.
-
-Setup
-===
-
-
-Install Anaconda: https://www.continuum.io/downloads
-
-Setup environment:
-```
-conda create -n akcabinsearch python=3.5
-source activate akcabinsearch
-conda install --file requirements.txt
-```
 
 
 Facilities
