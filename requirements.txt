@@ -1,0 +1,5 @@
+ipython
+BeautifulSoup4
+lxml
+pandas>=0.18.1
+requests
