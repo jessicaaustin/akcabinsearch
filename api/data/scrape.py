@@ -2,47 +2,38 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import os
-import pickle
 import calendar
+import jsonpickle
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 
-areas_file = "areas.pickle"
 
+area_codes = ["north", "matsu", "anch", "kenai", "kodiak", "pws", "south", "gulf"]
+area_names = ["Northern", "Mat-Su", "Anchorage", "Kenai", "Kodiak", "Prince William Sound", "Southeast", "Gulf Coast"]
 areas = {}
-if os.path.isfile(areas_file):
+for i in range(0, len(area_codes)):
+    areas[area_codes[i]] = { "name": area_names[i] }
 
-    print("{} exists, skipping".format(areas_file))
-    areas = pickle.load(open("areas.pickle", "rb"))
+area_url= "http://dnr.alaska.gov/parks/cabins/"
 
-else: 
+for area_code in area_codes:
+    print(area_code)
 
-    area_codes = ["north", "matsu", "anch", "kenai", "kodiak", "pws", "south", "gulf"]
-    area_url= "http://dnr.alaska.gov/parks/cabins/"
+    r = requests.get(area_url + area_code)
+    # TODO: use html5lib instead
+    soup = BeautifulSoup(r.content, "lxml")
+    elems = soup.find_all("input", {"name": "cabin_code"})
 
-    for area_code in area_codes:
-        print(area_code)
+    cabins = []
+    for elem in elems:
+        code = int(elem["value"])
+        name_text = elem.find_previous_siblings("strong")[0].text
+        name = str(re.sub(u"(\u2018|\u2019)", "'", name_text))
+        print("{}: {}: {}".format(area_code, name, code))
+        cabins.append({"name": name, "code": code})
 
-        r = requests.get(area_url + area_code)
-        # TODO: use html5lib instead
-        soup = BeautifulSoup(r.content, "lxml")
-        elems = soup.find_all("input", {"name": "cabin_code"})
+    areas[area_code]["cabins"] = cabins
 
-        cabins = []
-        for elem in elems:
-            code = int(elem["value"])
-            name_text = elem.find_previous_siblings("strong")[0].text
-            name = str(re.sub(u"(\u2018|\u2019)", "'", name_text))
-            print("{}: {}: {}".format(area_code, name, code))
-            cabins.append({"name": name, "code": code})
-
-        areas[area_code] = cabins
-
-    pickle.dump(areas, open( areas_file, "wb" ) )
-
-
-areas_with_availability_file = "areas_with_availability.pickle"
-areas_with_availability_json_file = "areas_with_availability.json"
 
 availablility_url = "http://dnr.alaska.gov/projects/cabins/CabinAvailability.cfm"
 possible_months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -52,7 +43,7 @@ calendar.setfirstweekday(calendar.SUNDAY)
 availability = {}
 for area in areas:
 
-    cabins = areas[area]
+    cabins = areas[area]["cabins"]
 
     for cabin in cabins:
 
@@ -101,5 +92,9 @@ for area in areas:
 
         cabin["availability"] = months
 
-pickle.dump(areas, open( areas_with_availability_file, "wb" ) )
+jsonpickle.set_encoder_options('simplejson', indent=4)
+with open('cabins.json', 'w') as f:
+    j = jsonpickle.encode(areas)
+    f.write(j)
+
 
