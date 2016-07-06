@@ -6,13 +6,23 @@ import calendar
 import jsonpickle
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
+import pandas as pd
 
+
+area_db = pd.DataFrame(columns=['name'])
+area_db.index.name = 'area_code'
+cabin_db = pd.DataFrame(columns=['area_code', 'name'])
+cabin_db.index.name = 'cabin_code'
+availability_db = pd.DataFrame(columns=['date', 'cabin_code', 'available'])
 
 area_codes = ["north", "matsu", "anch", "kenai", "kodiak", "pws", "south", "gulf"]
 area_names = ["Northern", "Mat-Su", "Anchorage", "Kenai", "Kodiak", "Prince William Sound", "Southeast", "Gulf Coast"]
 areas = {}
 for i in range(0, len(area_codes)):
-    areas[area_codes[i]] = { "name": area_names[i] }
+    area_code = area_codes[i] 
+    area_name = area_names[i] 
+    areas[area_code] = { "name": area_name }
+    area_db.loc[area_code] = [area_name]
 
 area_url= "http://dnr.alaska.gov/parks/cabins/"
 
@@ -43,13 +53,17 @@ calendar.setfirstweekday(calendar.SUNDAY)
 availability = {}
 for area in areas:
 
+    area_code = area
     cabins = areas[area]["cabins"]
 
     for cabin in cabins:
 
         print(cabin["name"])
 
-        r = requests.post(availablility_url, data={"cabin_code": cabin["code"]})
+        cabin_code = cabin['code']
+        cabin_db.loc[cabin_code] = [area_code, cabin['name']]
+
+        r = requests.post(availablility_url, data={"cabin_code": cabin_code})
         soup = BeautifulSoup(r.content, "lxml")
 
         # months listed
@@ -83,6 +97,9 @@ for area in areas:
             availability = {date(current_month.year, current_month.month, day): True for day in available_days}
             availability.update({date(current_month.year, current_month.month, day): False for day in reserved_days})
 
+            for a in availability:
+                availability_db.loc[len(availability_db.index)] = [a, cabin_code, availability[a]]
+
             months[month_names[i]] = availability
             current_month = current_month + relativedelta(months=1)
 
@@ -96,5 +113,9 @@ jsonpickle.set_encoder_options('simplejson', indent=4)
 with open('cabins.json', 'w') as f:
     j = jsonpickle.encode(areas)
     f.write(j)
+
+area_db.to_pickle('area_db.pickle')
+cabin_db.to_pickle('cabin_db.pickle')
+availability_db.to_pickle('availability_db.pickle')
 
 
